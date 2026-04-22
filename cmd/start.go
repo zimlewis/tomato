@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"encoding/binary"
 	"fmt"
+	"os"
+	"time"
 
+	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
+	"github.com/zimlewis/tomato/storage"
 )
 
 // startCmd represents the start command
@@ -21,37 +26,35 @@ to quickly create a Cobra application.`,
 
 
 	Run: func(cmd *cobra.Command, args []string) {
-		t, err := cmd.Flags().GetString("timer")
-		if err != nil {
-			fmt.Println("Something went wrong, please try again later")
-		}
+		err := storage.Storage.Update(func(txn *badger.Txn) error {
+			_, err := txn.Get(timerKey)
+			switch err {
+			case badger.ErrKeyNotFound:
+				err = txn.Set(timerKey, binary.BigEndian.AppendUint16(nil, 0))
+			case nil:
+			default:
+				return err
+			}
 
-		switch t {
-		case "short": startShortBreak()
-		case "long": startLongBreak()
-		case "pomodoro": startPomodoro()
-		default: return
+			currentTime := time.Now().Unix()
+			bCurrent := binary.BigEndian.AppendUint64(nil, uint64(currentTime))
+
+			err = txn.Set(startTimeKey, bCurrent)
+			return err
+		})
+
+		if err != nil {
+			fmt.Printf("Cannot start: %s", err.Error())
+			os.Exit(1)
 		}
 	},
-}
-
-func startPomodoro() {
-	fmt.Println("Start pomodoro")
-}
-
-func startShortBreak() {
-	fmt.Println("Start short break")
-}
-
-func startLongBreak() {
-	fmt.Println("Start long break")
 }
 
 
 func init() {
 	rootCmd.AddCommand(startCmd)
 
-	startCmd.Flags().StringP("timer", "t", "short", "....")
+	// startCmd.Flags().StringP("timer", "t", "short", "....")
 
 	// startCmd.Flags().BoolP("short", "s", false, "Short break")
 	// startCmd.Flags().BoolP("pomodoro", "p", false, "Pomodoro")
