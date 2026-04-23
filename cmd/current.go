@@ -103,7 +103,7 @@ to quickly create a Cobra application.`,
 			second := remaining % 60
 
 			if minute <= 0 && second <= 0 {
-				_ = beeep.Notify("Your time is up", "Move to your next phase", "")
+				_ = beeep.Notify("Tomato", "Your time is up", "")
 				_ = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
 				
 				return storage.Storage.Update(func(txn *badger.Txn) error {
