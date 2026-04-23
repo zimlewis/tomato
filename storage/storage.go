@@ -21,7 +21,7 @@ func Initialize() {
 	var err error
 	Storage, err = badger.Open(config)
 	if err != nil {
-		fmt.Printf("Cannot open storage: %s", err.Error())
+		fmt.Printf("Cannot open storage: %s\n", err.Error())
 		os.Exit(1)
 	}
 }

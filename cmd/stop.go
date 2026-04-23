@@ -28,7 +28,7 @@ to quickly create a Cobra application.`,
 		})
 
 		if err != nil {
-			fmt.Printf("Cannot start: %s", err.Error())
+			fmt.Printf("Cannot start: %s\n", err.Error())
 			os.Exit(1)
 		}
 	},

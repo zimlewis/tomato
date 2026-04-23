@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-
 	storage.Initialize()
 	cmd.Execute()
 }

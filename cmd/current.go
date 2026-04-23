@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -103,6 +104,7 @@ to quickly create a Cobra application.`,
 
 			if minute <= 0 && second <= 0 {
 				_ = beeep.Notify("Your time is up", "Move to your next phase", "")
+				_ = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
 				
 				return storage.Storage.Update(func(txn *badger.Txn) error {
 					return txn.Delete(startTimeKey)
