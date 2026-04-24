@@ -4,15 +4,16 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/binary"
-	"fmt"
+	"context"
 	"os"
+	"os/signal"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/storage"
+	"github.com/zimlewis/tomato/client"
+	timer "github.com/zimlewis/tomato/gen/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
-
 
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
@@ -29,103 +30,44 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		dir := args[0]
 
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
+
+		conn, err := client.New()
+		if err != nil {
+			cmd.PrintErrln(err)
+		}
+
+		c := timer.NewTimerClient(conn.Connection)
+
+		
 		switch dir {
-		case "up": switchUp() 
-		case "down": switchDown()
+		case "up": err = switchUp(ctx, c) 
+		case "down": err = switchDown(ctx, c)
 		case "defualt": 
-			fmt.Println("The argument to this command must be up or down")
+			cmd.Println("The argument to this command must be up or down")
+		}
+		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
+			return
+		}
+		if err != nil {
+			cmd.PrintErrln(err)
 		}
 	},
 }
 
-func switchUp() {
-	err := storage.Storage.Update(func(txn *badger.Txn) error {
-		var i uint16
-
-		item, err := txn.Get(timerKey)
-		switch err {
-		case badger.ErrKeyNotFound:
-			i = 0
-		case nil:
-			b, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-
-			i = binary.BigEndian.Uint16(b)
-		default:
-			return err
-		}
-
-		nextClock := i + 1
-		if i >= 2 {
-			nextClock = 0
-		}
-
-
-		nextClockByte := binary.BigEndian.AppendUint16(nil, nextClock)
-		err = txn.Set(timerKey, nextClockByte)
-		if err != nil {
-			return err
-		}
-
-		err = txn.Delete(startTimeKey)
-
-		return err
+func switchUp(ctx context.Context, client timer.TimerClient) error {
+	_, err := client.Switch(ctx, &timer.SwitchRequest{
+		Dir: timer.SwitchDirection_UP,
 	})
-
-	if err != nil {
-		fmt.Printf("Something went wrong: %s\n", err.Error())
-		os.Exit(1)
-	}
-
+	return err
 }
 
-func switchDown() {
-	err := storage.Storage.Update(func(txn *badger.Txn) error {
-		var i uint16
-
-		item, err := txn.Get(timerKey)
-		switch err {
-		case badger.ErrKeyNotFound:
-			i = 0
-		case nil:
-			b, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-
-			i = binary.BigEndian.Uint16(b)
-		default:
-			return err
-		}
-
-
-		var nextClock uint16
-		if i == 0 {
-			nextClock = 2
-		} else {
-			nextClock = i - 1
-		}
-
-
-		nextClockByte := binary.BigEndian.AppendUint16(nil, nextClock)
-		err = txn.Set(timerKey, nextClockByte)
-		if err != nil {
-			return err
-		}
-
-		err = txn.Delete(startTimeKey)
-
-		return err
+func switchDown(ctx context.Context, client timer.TimerClient) error {
+	_, err := client.Switch(ctx, &timer.SwitchRequest{
+		Dir: timer.SwitchDirection_DOWN,
 	})
-
-
-	if err != nil {
-		fmt.Printf("Something went wrong: %s\n", err.Error())
-		os.Exit(1)
-	}
-
+	return err
 }
 
 func init() {

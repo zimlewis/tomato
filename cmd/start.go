@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"encoding/binary"
-	"fmt"
+	"context"
 	"os"
-	"time"
+	"os/signal"
 
-	"github.com/dgraph-io/badger/v4"
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/storage"
+	"github.com/zimlewis/tomato/client"
+	timer "github.com/zimlewis/tomato/gen/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // startCmd represents the start command
@@ -26,26 +27,24 @@ to quickly create a Cobra application.`,
 
 
 	Run: func(cmd *cobra.Command, args []string) {
-		err := storage.Storage.Update(func(txn *badger.Txn) error {
-			_, err := txn.Get(timerKey)
-			switch err {
-			case badger.ErrKeyNotFound:
-				err = txn.Set(timerKey, binary.BigEndian.AppendUint16(nil, 0))
-			case nil:
-			default:
-				return err
-			}
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
 
-			currentTime := time.Now().Unix()
-			bCurrent := binary.BigEndian.AppendUint64(nil, uint64(currentTime))
+		conn, err := client.New()
+		if err != nil {
+			cmd.PrintErrln(err)
+			return
+		}
 
-			err = txn.Set(startTimeKey, bCurrent)
-			return err
-		})
+		c := timer.NewTimerClient(conn.Connection)
+		_, err = c.Start(ctx, nil)
+		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
+			return
+		}
 
 		if err != nil {
-			fmt.Printf("Cannot start: %s\n", err.Error())
-			os.Exit(1)
+			cmd.PrintErrln(err)
+			return
 		}
 	},
 }

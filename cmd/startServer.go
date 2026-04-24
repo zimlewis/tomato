@@ -9,15 +9,13 @@ import (
 	"os/signal"
 
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/client"
-	timer "github.com/zimlewis/tomato/gen/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/zimlewis/tomato/server"
+	"github.com/zimlewis/tomato/storage"
 )
 
-// stopCmd represents the stop command
-var stopCmd = &cobra.Command{
-	Use:   "stop",
+// startServerCmd represents the startServer command
+var startServerCmd = &cobra.Command{
+	Use:   "startServer",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -29,25 +27,16 @@ to quickly create a Cobra application.`,
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer cancel()
 
-		conn, err := client.New()
+		storage.Initialize()
+		err := server.Start(ctx)
 		if err != nil {
 			cmd.PrintErrln(err)
 			return
 		}
 
-		c := timer.NewTimerClient(conn.Connection)
-		_, err = c.Stop(ctx, nil)
-		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
-			return
-		}
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
-		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(stopCmd)
-
+	rootCmd.AddCommand(startServerCmd)
 }

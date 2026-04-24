@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "github.com/zimlewis/tomato/gen/timer";
+
+package timer;
+import "google/protobuf/empty.proto";
+
+service Timer {
+  rpc Start(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Switch(SwitchRequest) returns (google.protobuf.Empty);
+  rpc Current(google.protobuf.Empty) returns (CurrentTimer);
+  rpc GetClock(google.protobuf.Empty) returns (GetClockResponse); 
+}
+
+message GetClockResponse {
+  int32 clock = 1;
+}
+
+message CurrentTimer {
+  int64 time_left = 1;
+  int32 clock = 2;
+}
+
+enum SwitchDirection {
+  UP = 0;
+  DOWN = 1;
+}
+
+message SwitchRequest {
+  SwitchDirection dir = 1;
+}

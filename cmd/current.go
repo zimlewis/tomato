@@ -4,18 +4,19 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"encoding/binary"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
+	"os/signal"
 	"strings"
 	"time"
 
-	"github.com/dgraph-io/badger/v4"
-	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/storage"
+	"github.com/zimlewis/tomato/client"
+	timer "github.com/zimlewis/tomato/gen/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // currentCmd represents the current command
@@ -28,121 +29,100 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+
 	Run: func(cmd *cobra.Command, args []string) {
-		type currentBody struct {
-			Clock string
-			Minute int
-			Second int
+		conn, err := client.New()
+		if err != nil {
+			cmd.PrintErrln(err)
+			return
 		}
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
 
-		var current currentBody 
-		err := storage.Storage.View(func(txn *badger.Txn) error {
-			item, err := txn.Get(startTimeKey)
-			switch err {
-			case badger.ErrKeyNotFound:
-				currentClockItem, err := txn.Get(timerKey)
-
-				switch err {
-				case nil:
-				default: return err
-				case badger.ErrKeyNotFound:
-					current = currentBody {
-						Clock: "Pomo",
-						Minute: 25,
-						Second: 00,
-					}
-					return nil
-				}
-
-				clockByte, err := currentClockItem.ValueCopy(nil)
-				if err != nil {
-					return err
-				}
-
-				clockInt := binary.BigEndian.Uint16(clockByte)
-
-				current = currentBody {
-					Clock: clock[clockInt],
-					Minute: timeWait[clockInt],
-					Second: 0,
-				}
-
-
-				return nil
-			case nil:
-			default:
-				return err
+		c := timer.NewTimerClient(conn.Connection)
+		for {
+			s, err := printCurrentTimeInterval(ctx, c)
+			if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
+				return
 			}
-
-			b, err := item.ValueCopy(nil)
 			if err != nil {
-				return err
+				cmd.PrintErrln(err)
+				return
 			}
 
-			i := binary.BigEndian.Uint64(b)
-			
-			currentClockItem, err := txn.Get(timerKey)
-			if err != nil {
-				return err
-			}
+			cmd.Println(s)
+			time.Sleep(1 * time.Second)
+		}
+	},
+}
 
-			clockByte, err := currentClockItem.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
+func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (string, error) {
+	type returnBody struct {
+		Text    string `json:"text"`
+		Tooltip string `json:"tooltip"`
+		Alt     string `json:"alt"`
+		Class   string `json:"class"`
+	}
 
-			clockInt := binary.BigEndian.Uint16(clockByte)
-			elapsed := time.Now().Unix() - int64(i)
-
-
-			total := timeWait[clockInt] * 60
-			remaining := total - int(elapsed)
-			
-
-			minute := remaining / 60
-			second := remaining % 60
-
-			if minute <= 0 && second <= 0 {
-				_ = beeep.Notify("Tomato", "Your time is up", "")
-				_ = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
-				
-				return storage.Storage.Update(func(txn *badger.Txn) error {
-					return txn.Delete(startTimeKey)
-				})
-			}
-
-			current = currentBody {
-				Clock: clock[clockInt],
-				Minute: int(minute),
-				Second: int(second),
-			}
-
-			return nil
-		})
-
+	current, err := c.Current(ctx, nil)
+	if sta, ok := status.FromError(err); ok && sta.Code() == codes.NotFound {
+		currentClock, err := c.GetClock(ctx, nil)
 
 		if err != nil {
-			fmt.Printf("Cannot get current state %s\n", err.Error())
-			os.Exit(1)
+			return "", fmt.Errorf("Cannot get current clock: %w\n", err)
 		}
 
-		type returnBody struct {
-			Text    string `json:"text"`
-			Tooltip string `json:"tooltip"`
-			Alt     string `json:"alt"`
-			Class   string `json:"class"`
-		}
-
-		value := returnBody {
-			Text: fmt.Sprintf("%.4s %02d:%02d", strings.ToUpper(current.Clock), current.Minute, current.Second),
-			Class: "tomato",
+		value := returnBody{
+			Text: fmt.Sprintf(
+				"%.4s %02d:%02d",
+				strings.ToUpper(clock[currentClock.Clock]),
+				timeWait[currentClock.Clock],
+				0,
+			),
+			Class:   "tomato",
 			Tooltip: "+ Left click to start\n+ Right click to stop\n+ Scroll up to switch mod up\n+ Scroll down to switch mod down",
 		}
-		
 
 		jsonData, err := json.Marshal(value)
-		fmt.Println(string(jsonData))
-	},
+		if err != nil {
+			return "", fmt.Errorf("Cannot marshal data: %w", err)
+		}
+		return fmt.Sprintf("%s", string(jsonData)), nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("Error while retrieving current time: %w\n", err)
+	}
+
+	remaining := current.TimeLeft
+
+	if remaining <= 0 {
+		// Notify
+		if _, err := c.Stop(ctx, nil); err != nil {
+			return "", fmt.Errorf("Cannot stop the clock: %w\n", err)
+		}
+
+		remaining = 0
+	}
+
+	minute := remaining / 60
+	second := remaining % 60
+
+	value := returnBody{
+		Text: fmt.Sprintf(
+			"%.4s %02d:%02d",
+			strings.ToUpper(clock[current.Clock]),
+			minute,
+			second,
+		),
+		Class:   "tomato",
+		Tooltip: "+ Left click to start\n+ Right click to stop\n+ Scroll up to switch mod up\n+ Scroll down to switch mod down",
+	}
+
+	jsonData, err := json.Marshal(value)
+	if err != nil {
+		return "", fmt.Errorf("Cannot marshal data: %w", err)
+	}
+	return fmt.Sprintf("%s", string(jsonData)), nil
 }
 
 func init() {
