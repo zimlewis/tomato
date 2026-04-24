@@ -3,7 +3,6 @@ package timer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	gen "github.com/zimlewis/tomato/gen/proto"
@@ -99,7 +98,7 @@ func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.
 			valueToSwitch = 2
 		}
 	default:
-		return nil, fmt.Errorf("Wrong direction format: %s\n", dir.String())
+		return nil, status.Errorf(codes.InvalidArgument, "Wrong direction format: %s\n", dir.String())
 	}
 
 	// Set the clock type 
