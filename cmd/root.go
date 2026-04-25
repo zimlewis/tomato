@@ -23,9 +23,13 @@ var rootCmd = &cobra.Command{
 	Long: `A CLI tool to track time with tomato timer
 
 tomato is a CLI tool that track time with tomato timer. It has 3 mod:
- + Pomodoro
- + Short break
- + Long break
+ + Pomodoro: 25 minutes of working
+ + Short break: 5 minutes of break
+ + Long break: 30 minutes of break
+
+it is recommended to do this rotation while working/studying:
+(Pomodoro -> Short break) x 5 -> Long break
+and then repeat
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:

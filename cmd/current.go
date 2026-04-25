@@ -24,13 +24,11 @@ import (
 // currentCmd represents the current command
 var currentCmd = &cobra.Command{
 	Use:   "current",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Print the current time you have left in the phase and phase",
+	Long: `Print each second current time in the phase, in waybar module json format
+example output: 
+{"text":"POMO 25:00","tooltip":"+ Left click to start\n+ Right click to stop\n+ Scroll up to switch mod up\n+ Scroll down to switch mod down","alt":"","class":"tomato"}
+	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		conn, err := client.New()
@@ -54,20 +52,21 @@ to quickly create a Cobra application.`,
 		defer ticker.Stop()
 
 		for {
+			s, err := printCurrentTimeInterval(ctx, c)
+			if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
+				return
+			}
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				continue
+			}
+			fmt.Println(s)
+			os.Stdout.Sync()
+
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				s, err := printCurrentTimeInterval(ctx, c)
-				if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
-					return
-				}
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					continue
-				}
-				fmt.Println(s)
-				os.Stdout.Sync()
 			}
 		}
 	},

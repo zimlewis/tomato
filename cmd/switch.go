@@ -18,13 +18,24 @@ import (
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Change the current tomato session",
+	Long: `First argument is the direction which the command will change to
+the commands is in this order: Pomodoro -> Short Break -> Long Break
+eg.
+from Pomodoro to Short Break:
+	tomato switch up
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+from Long Break to Short Break:
+	tomato switch down
+
+Note that the operation will switch in a cycle, meaning it will go back to the first phase if it exceed last phase and vice versa
+eg.
+from Long Break to Pomodoro:
+	tomato switch up
+
+from Pomodoro to Long Break:
+	tomato switch down
+`,
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {

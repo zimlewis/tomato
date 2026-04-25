@@ -15,14 +15,11 @@ import (
 
 // startServerCmd represents the startServer command
 var startServerCmd = &cobra.Command{
-	Use:   "startServer",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "ss",
+	Short: "Start the gRPC server that whole connection to the local Database",
+	Long: `Since it is not possible to have multiple connection to the badger db at the same time
+the server will hold the database connection and then will retrieve send data to client(other cli command)
+by gRPC protocal`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer cancel()

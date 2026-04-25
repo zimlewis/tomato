@@ -15,13 +15,9 @@ import (
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Start tomato session with current phase",
+	Long: `This work by saving the current time, and later, current method could subtract that saved
+time and return the time left`,
 	Args: cobra.NoArgs,
 
 
