@@ -31,6 +31,10 @@ example output:
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
+		formatterFlag := cmd.Flag("formatter").Value.String()
+		f := formatter.NewFromString(formatterFlag)
+
+
 		conn, err := client.New()
 		if err != nil {
 			cmd.PrintErrln(err)
@@ -60,8 +64,7 @@ example output:
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-			formatter := formatter.WaybarFormatter {}
-			s, err := formatter.Format(cur)
+			s, err := f.Format(cur)
 			cmd.Println(s)
 
 			select {
@@ -127,4 +130,6 @@ func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (types.C
 
 func init() {
 	rootCmd.AddCommand(currentCmd)
+
+	currentCmd.Flags().StringP("formatter", "f", "default", "Decide which format to use")
 }
