@@ -5,18 +5,18 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
 	timer "github.com/zimlewis/tomato/gen/proto"
+	"github.com/zimlewis/tomato/internal/formatter"
+	"github.com/zimlewis/tomato/internal/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -52,7 +52,7 @@ example output:
 		defer ticker.Stop()
 
 		for {
-			s, err := printCurrentTimeInterval(ctx, c)
+			cur, err := printCurrentTimeInterval(ctx, c)
 			if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
 				return
 			}
@@ -60,8 +60,9 @@ example output:
 				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
-			fmt.Println(s)
-			os.Stdout.Sync()
+			formatter := formatter.WaybarFormatter {}
+			s, err := formatter.Format(cur)
+			cmd.Println(s)
 
 			select {
 			case <-ctx.Done():
@@ -72,7 +73,7 @@ example output:
 	},
 }
 
-func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (string, error) {
+func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (types.CurrentResponse, error) {
 	type returnBody struct {
 		Text    string `json:"text"`
 		Tooltip string `json:"tooltip"`
@@ -85,28 +86,16 @@ func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (string,
 		currentClock, err := c.GetClock(ctx, nil)
 
 		if err != nil {
-			return "", fmt.Errorf("Cannot get current clock: %w\n", err)
+			return types.CurrentResponse{}, fmt.Errorf("Cannot get current clock: %w\n", err)
 		}
 
-		value := returnBody{
-			Text: fmt.Sprintf(
-				"%.4s %02d:%02d",
-				strings.ToUpper(clock[currentClock.Clock]),
-				timeWait[currentClock.Clock],
-				0,
-			),
-			Class:   "tomato",
-			Tooltip: "+ Left click to start\n+ Right click to stop\n+ Scroll up to switch mod up\n+ Scroll down to switch mod down",
-		}
-
-		jsonData, err := json.Marshal(value)
-		if err != nil {
-			return "", fmt.Errorf("Cannot marshal data: %w", err)
-		}
-		return fmt.Sprintf("%s", string(jsonData)), nil
+		return types.CurrentResponse{
+			Clock: int16(currentClock.Clock),
+			TimeLeft: int64(timeWait[current.Clock]),
+		}, nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("Error while retrieving current time: %w\n", err)
+		return types.CurrentResponse{}, fmt.Errorf("Error while retrieving current time: %w\n", err)
 	}
 
 	remaining := current.TimeLeft
@@ -115,39 +104,25 @@ func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (string,
 
 		err = beeep.Notify("Tomato", "Your time is up", "")
 		if err != nil {
-			return "", fmt.Errorf("Cannot notify: %w", err)
+			return types.CurrentResponse{}, fmt.Errorf("Cannot notify: %w", err)
 		}
 		err = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
 		if err != nil {
-			return "", fmt.Errorf("Cannot play sound: %w", err)
+			return types.CurrentResponse{}, fmt.Errorf("Cannot play sound: %w", err)
 		}
 		// Notify
 		if _, err := c.Stop(ctx, nil); err != nil {
-			return "", fmt.Errorf("Cannot stop the clock: %w\n", err)
+			return types.CurrentResponse{}, fmt.Errorf("Cannot stop the clock: %w\n", err)
 		}
 
-		remaining = 0
+		remaining = int64(timeWait[current.Clock]) * 60
 	}
 
-	minute := remaining / 60
-	second := remaining % 60
 
-	value := returnBody{
-		Text: fmt.Sprintf(
-			"%.4s %02d:%02d",
-			strings.ToUpper(clock[current.Clock]),
-			minute,
-			second,
-		),
-		Class:   "tomato",
-		Tooltip: "+ Left click to start\n+ Right click to stop\n+ Scroll up to switch mod up\n+ Scroll down to switch mod down",
-	}
-
-	jsonData, err := json.Marshal(value)
-	if err != nil {
-		return "", fmt.Errorf("Cannot marshal data: %w", err)
-	}
-	return fmt.Sprintf("%s", string(jsonData)), nil
+	return types.CurrentResponse{
+		Clock: int16(current.Clock),
+		TimeLeft: remaining,
+	}, nil
 }
 
 func init() {
