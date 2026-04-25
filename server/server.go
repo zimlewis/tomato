@@ -14,6 +14,12 @@ import (
 
 func Start(ctx context.Context) error {
 	listener, err := net.Listen("tcp", "localhost:6600")
+	defer func(){
+		if err := listener.Close(); err!= nil {
+			fmt.Println("error closing server: ", err)
+			return
+		}
+	}()
 	if err != nil {
 		return fmt.Errorf("Cannot start server: %w", err)
 	}

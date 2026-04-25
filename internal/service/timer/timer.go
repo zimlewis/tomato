@@ -14,7 +14,7 @@ import (
 )
 
 
-var waitTime = []int64{25, 15, 30}
+var waitTime = []int64{25, 5, 30}
 
 type Service struct {
 	gen.UnimplementedTimerServer

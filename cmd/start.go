@@ -35,6 +35,13 @@ to quickly create a Cobra application.`,
 			cmd.PrintErrln(err)
 			return
 		}
+		defer func () {
+			err := conn.Connection.Close()
+			if err != nil {
+				cmd.PrintErrln(err)
+				return
+			}
+		}()
 
 		c := timer.NewTimerClient(conn.Connection)
 		_, err = c.Start(ctx, nil)

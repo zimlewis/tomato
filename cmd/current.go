@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"time"
 
+	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
 	timer "github.com/zimlewis/tomato/gen/proto"
@@ -36,22 +38,37 @@ to quickly create a Cobra application.`,
 			cmd.PrintErrln(err)
 			return
 		}
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
-
-		c := timer.NewTimerClient(conn.Connection)
-		for {
-			s, err := printCurrentTimeInterval(ctx, c)
-			if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
-				return
-			}
+		defer func () {
+			err := conn.Connection.Close()
 			if err != nil {
 				cmd.PrintErrln(err)
 				return
 			}
+		}()
 
-			cmd.Println(s)
-			time.Sleep(1 * time.Second)
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
+
+		c := timer.NewTimerClient(conn.Connection)
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s, err := printCurrentTimeInterval(ctx, c)
+				if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
+					return
+				}
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					continue
+				}
+				fmt.Println(s)
+				os.Stdout.Sync()
+			}
 		}
 	},
 }
@@ -96,6 +113,15 @@ func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (string,
 	remaining := current.TimeLeft
 
 	if remaining <= 0 {
+
+		err = beeep.Notify("Tomato", "Your time is up", "")
+		if err != nil {
+			return "", fmt.Errorf("Cannot notify: %w", err)
+		}
+		err = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
+		if err != nil {
+			return "", fmt.Errorf("Cannot play sound: %w", err)
+		}
 		// Notify
 		if _, err := c.Stop(ctx, nil); err != nil {
 			return "", fmt.Errorf("Cannot stop the clock: %w\n", err)
