@@ -77,25 +77,20 @@ example output:
 }
 
 func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (types.CurrentResponse, error) {
-	type returnBody struct {
-		Text    string `json:"text"`
-		Tooltip string `json:"tooltip"`
-		Alt     string `json:"alt"`
-		Class   string `json:"class"`
-	}
-
 	current, err := c.Current(ctx, nil)
 	if sta, ok := status.FromError(err); ok && sta.Code() == codes.NotFound {
-		currentClock, err := c.GetClock(ctx, nil)
+		var currentClock *timer.GetClockResponse
+		currentClock, err = c.GetClock(ctx, nil)
 
 		if err != nil {
 			return types.CurrentResponse{}, fmt.Errorf("Cannot get current clock: %w\n", err)
 		}
 
-		return types.CurrentResponse{
-			Clock: int16(currentClock.Clock),
-			TimeLeft: int64(timeWait[current.Clock]),
-		}, nil
+		current = &timer.CurrentTimer{
+			TimeLeft: int64(timeWait[currentClock.Clock] * 60),
+			Clock: currentClock.Clock,
+		}
+		err = nil
 	}
 	if err != nil {
 		return types.CurrentResponse{}, fmt.Errorf("Error while retrieving current time: %w\n", err)
