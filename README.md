@@ -67,7 +67,10 @@ To open the time tracker:
 ```
 tomato current
 ```
-Note that this only return json with [waybar's module](https://github.com/Alexays/Waybar/wiki/Module:-Custom#return-type) format, might add normal message later
+Flags:
+| option           | typeof  | default | description |
+| ---------------- | ------- | ------- | ----------- |
+| `-f`, `--format` | string  |`default`|The formatter that is used to print current time, currently accept 3 values: `default`, `waybar`, `basic`. Any other value will be conver to default, default is human readable format: eg. "Your pomodoro session has 05:26 remaining"| 
 
 ## Help
 
