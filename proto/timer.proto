@@ -11,6 +11,11 @@ service Timer {
   rpc Switch(SwitchRequest) returns (google.protobuf.Empty);
   rpc Current(google.protobuf.Empty) returns (CurrentTimer);
   rpc GetClock(google.protobuf.Empty) returns (GetClockResponse); 
+  rpc SetClock(SetClockRequest) returns (google.protobuf.Empty);
+}
+
+message SetClockRequest {
+  int32 clock = 1;
 }
 
 message GetClockResponse {
