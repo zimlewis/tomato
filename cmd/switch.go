@@ -18,7 +18,7 @@ import (
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
 	Use:   "switch",
-	Short: "Change the current tomato session",
+	Short: "Cycle the current tomato session",
 	Long: `First argument is the direction which the command will change to
 the commands is in this order: Pomodoro -> Short Break -> Long Break
 eg.

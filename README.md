@@ -63,6 +63,11 @@ To switch different tomato phase(this will automatically stop your session)
 tomato switch [up|down]
 ```
 
+To change to a specified tomato phase(this will automatically stop your session)
+```
+tomato switch [pomodoro|short|long]
+```
+
 To open the time tracker:
 ```
 tomato current

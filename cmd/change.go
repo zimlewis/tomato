@@ -17,13 +17,8 @@ import (
 // changeCmd represents the change command
 var changeCmd = &cobra.Command{
 	Use:   "change",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Change the current tomato session",
+	Long: `First argument is the session to change to(pomodoro, short, long)`,
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -34,7 +29,7 @@ to quickly create a Cobra application.`,
 		case "SHORT": clockToSet = 1
 		case "LONG": clockToSet = 2
 		default: 
-			cmd.PrintErrf("Wrong clock: %s\nClock must be eiter pomodoro, short or long", tomatoSession)
+			cmd.PrintErrf("Wrong clock: %s\nClock must be either pomodoro, short or long", tomatoSession)
 			return
 		}
 
