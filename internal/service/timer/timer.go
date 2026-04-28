@@ -95,20 +95,26 @@ func (s *Service) Start(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, 
 	// Set the start time to current time
 	currentTime := time.Now().Unix()
 	err := s.repo.SetStartTime(ctx, currentTime)
-	return nil, err
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Cannot start session %s", err.Error())
+	}
+	return nil, nil
 }
 
 func (s *Service) Stop(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
 	// Delete the start time
 	err := s.repo.DeleteStartTime(ctx)
-	return nil, err
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Cannot stop session: %s", err.Error())
+	}
+	return nil, nil
 }
 
 func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.Empty, error) {
 	// Get the clock type and switch it arcodingly
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Cannot get clock: %s", err.Error())
 	}
 
 	var valueToSwitch int
@@ -130,10 +136,13 @@ func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.
 	// Set the clock type 
 	err = s.repo.SetClock(ctx, int(valueToSwitch))
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Cannot set clock: %s", err.Error())
 	}
 
 	// Delete the start time
 	err = s.repo.DeleteStartTime(ctx)
-	return nil, err
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Cannot delete start time: %s", err.Error())
+	}
+	return nil, nil
 }
