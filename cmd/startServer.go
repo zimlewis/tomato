@@ -30,7 +30,6 @@ by gRPC protocal`,
 			cmd.PrintErrln(err)
 			return
 		}
-
 	},
 }
 

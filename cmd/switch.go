@@ -47,6 +47,7 @@ from Pomodoro to Long Break:
 		conn, err := client.New()
 		if err != nil {
 			cmd.PrintErrln(err)
+			return
 		}
 		defer func () {
 			err := conn.Connection.Close()
@@ -63,7 +64,7 @@ from Pomodoro to Long Break:
 		case "up": err = switchUp(ctx, c) 
 		case "down": err = switchDown(ctx, c)
 		case "defualt": 
-			cmd.Println("The argument to this command must be up or down")
+			cmd.PrintErrln("The argument to this command must be up or down")
 		}
 		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
 			return
@@ -71,6 +72,8 @@ from Pomodoro to Long Break:
 		if err != nil {
 			cmd.PrintErrln(err)
 		}
+
+		cmd.Println("Switch session successfully")
 	},
 }
 

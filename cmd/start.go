@@ -49,6 +49,8 @@ time and return the time left`,
 			cmd.PrintErrln(err)
 			return
 		}
+
+		cmd.Println("Start session successfully")
 	},
 }
 
