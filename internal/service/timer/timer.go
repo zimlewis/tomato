@@ -43,7 +43,10 @@ func (s *Service) SetClock(ctx context.Context, req *gen.SetClockRequest) (*empt
 
 	// Delete the start time
 	err = s.repo.DeleteStartTime(ctx)
-	return nil, status.Errorf(codes.Internal, "%s", err.Error())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+	}
+	return nil, nil
 }
 
 

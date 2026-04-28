@@ -57,11 +57,11 @@ example output:
 
 		for {
 			cur, err := printCurrentTimeInterval(ctx, c)
-			if sta, ok := status.FromError(err); ok && sta.Code() == codes.Canceled {
+			if sta, ok := status.FromError(err); ok && (sta.Code() == codes.Canceled || sta.Code() == codes.Unavailable) {
 				return
 			}
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				cmd.PrintErrln(err)
 				continue
 			}
 			s, err := f.Format(cur)

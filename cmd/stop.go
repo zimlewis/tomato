@@ -46,6 +46,8 @@ var stopCmd = &cobra.Command{
 			cmd.PrintErrln(err)
 			return
 		}
+
+		cmd.Println("Stop timer successfully")
 	},
 }
 
