@@ -27,6 +27,29 @@ func New(repo *repository.Repository) *Service {
 	}
 }
 
+
+
+func (s *Service) SetClock(ctx context.Context, req *gen.SetClockRequest) (*emptypb.Empty, error) {
+	valueToSwitch := req.Clock
+	if valueToSwitch < 0 || valueToSwitch > 2 {
+		return nil, status.Errorf(codes.InvalidArgument, "Invalid clock value(value must be in range from 0 to 2): %d", valueToSwitch)
+	}
+
+	// Set the clock type 
+	err := s.repo.SetClock(ctx, int(valueToSwitch))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+	}
+
+	// Delete the start time
+	err = s.repo.DeleteStartTime(ctx)
+	return nil, status.Errorf(codes.Internal, "%s", err.Error())
+}
+
+
+
+
+
 func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*gen.GetClockResponse, error) {
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
@@ -43,7 +66,7 @@ func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*gen.CurrentTi
 	
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "%s", err.Error())
 	}
 
 	startTime, err := s.repo.GetStartTime(ctx)

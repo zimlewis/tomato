@@ -25,6 +25,7 @@ const (
 	Timer_Switch_FullMethodName   = "/timer.Timer/Switch"
 	Timer_Current_FullMethodName  = "/timer.Timer/Current"
 	Timer_GetClock_FullMethodName = "/timer.Timer/GetClock"
+	Timer_SetClock_FullMethodName = "/timer.Timer/SetClock"
 )
 
 // TimerClient is the client API for Timer service.
@@ -36,6 +37,7 @@ type TimerClient interface {
 	Switch(ctx context.Context, in *SwitchRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Current(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CurrentTimer, error)
 	GetClock(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetClockResponse, error)
+	SetClock(ctx context.Context, in *SetClockRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type timerClient struct {
@@ -96,6 +98,16 @@ func (c *timerClient) GetClock(ctx context.Context, in *emptypb.Empty, opts ...g
 	return out, nil
 }
 
+func (c *timerClient) SetClock(ctx context.Context, in *SetClockRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Timer_SetClock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TimerServer is the server API for Timer service.
 // All implementations must embed UnimplementedTimerServer
 // for forward compatibility.
@@ -105,6 +117,7 @@ type TimerServer interface {
 	Switch(context.Context, *SwitchRequest) (*emptypb.Empty, error)
 	Current(context.Context, *emptypb.Empty) (*CurrentTimer, error)
 	GetClock(context.Context, *emptypb.Empty) (*GetClockResponse, error)
+	SetClock(context.Context, *SetClockRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedTimerServer()
 }
 
@@ -129,6 +142,9 @@ func (UnimplementedTimerServer) Current(context.Context, *emptypb.Empty) (*Curre
 }
 func (UnimplementedTimerServer) GetClock(context.Context, *emptypb.Empty) (*GetClockResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetClock not implemented")
+}
+func (UnimplementedTimerServer) SetClock(context.Context, *SetClockRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetClock not implemented")
 }
 func (UnimplementedTimerServer) mustEmbedUnimplementedTimerServer() {}
 func (UnimplementedTimerServer) testEmbeddedByValue()               {}
@@ -241,6 +257,24 @@ func _Timer_GetClock_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Timer_SetClock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetClockRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TimerServer).SetClock(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Timer_SetClock_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TimerServer).SetClock(ctx, req.(*SetClockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Timer_ServiceDesc is the grpc.ServiceDesc for Timer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -267,6 +301,10 @@ var Timer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetClock",
 			Handler:    _Timer_GetClock_Handler,
+		},
+		{
+			MethodName: "SetClock",
+			Handler:    _Timer_SetClock_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

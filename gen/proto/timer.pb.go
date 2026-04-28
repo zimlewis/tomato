@@ -68,6 +68,50 @@ func (SwitchDirection) EnumDescriptor() ([]byte, []int) {
 	return file_proto_timer_proto_rawDescGZIP(), []int{0}
 }
 
+type SetClockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Clock         int32                  `protobuf:"varint,1,opt,name=clock,proto3" json:"clock,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetClockRequest) Reset() {
+	*x = SetClockRequest{}
+	mi := &file_proto_timer_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetClockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetClockRequest) ProtoMessage() {}
+
+func (x *SetClockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_timer_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetClockRequest.ProtoReflect.Descriptor instead.
+func (*SetClockRequest) Descriptor() ([]byte, []int) {
+	return file_proto_timer_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SetClockRequest) GetClock() int32 {
+	if x != nil {
+		return x.Clock
+	}
+	return 0
+}
+
 type GetClockResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Clock         int32                  `protobuf:"varint,1,opt,name=clock,proto3" json:"clock,omitempty"`
@@ -77,7 +121,7 @@ type GetClockResponse struct {
 
 func (x *GetClockResponse) Reset() {
 	*x = GetClockResponse{}
-	mi := &file_proto_timer_proto_msgTypes[0]
+	mi := &file_proto_timer_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -89,7 +133,7 @@ func (x *GetClockResponse) String() string {
 func (*GetClockResponse) ProtoMessage() {}
 
 func (x *GetClockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_timer_proto_msgTypes[0]
+	mi := &file_proto_timer_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -102,7 +146,7 @@ func (x *GetClockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetClockResponse.ProtoReflect.Descriptor instead.
 func (*GetClockResponse) Descriptor() ([]byte, []int) {
-	return file_proto_timer_proto_rawDescGZIP(), []int{0}
+	return file_proto_timer_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetClockResponse) GetClock() int32 {
@@ -122,7 +166,7 @@ type CurrentTimer struct {
 
 func (x *CurrentTimer) Reset() {
 	*x = CurrentTimer{}
-	mi := &file_proto_timer_proto_msgTypes[1]
+	mi := &file_proto_timer_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -134,7 +178,7 @@ func (x *CurrentTimer) String() string {
 func (*CurrentTimer) ProtoMessage() {}
 
 func (x *CurrentTimer) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_timer_proto_msgTypes[1]
+	mi := &file_proto_timer_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -147,7 +191,7 @@ func (x *CurrentTimer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentTimer.ProtoReflect.Descriptor instead.
 func (*CurrentTimer) Descriptor() ([]byte, []int) {
-	return file_proto_timer_proto_rawDescGZIP(), []int{1}
+	return file_proto_timer_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CurrentTimer) GetTimeLeft() int64 {
@@ -173,7 +217,7 @@ type SwitchRequest struct {
 
 func (x *SwitchRequest) Reset() {
 	*x = SwitchRequest{}
-	mi := &file_proto_timer_proto_msgTypes[2]
+	mi := &file_proto_timer_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +229,7 @@ func (x *SwitchRequest) String() string {
 func (*SwitchRequest) ProtoMessage() {}
 
 func (x *SwitchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_timer_proto_msgTypes[2]
+	mi := &file_proto_timer_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +242,7 @@ func (x *SwitchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwitchRequest.ProtoReflect.Descriptor instead.
 func (*SwitchRequest) Descriptor() ([]byte, []int) {
-	return file_proto_timer_proto_rawDescGZIP(), []int{2}
+	return file_proto_timer_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SwitchRequest) GetDir() SwitchDirection {
@@ -212,7 +256,9 @@ var File_proto_timer_proto protoreflect.FileDescriptor
 
 const file_proto_timer_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/timer.proto\x12\x05timer\x1a\x1bgoogle/protobuf/empty.proto\"(\n" +
+	"\x11proto/timer.proto\x12\x05timer\x1a\x1bgoogle/protobuf/empty.proto\"'\n" +
+	"\x0fSetClockRequest\x12\x14\n" +
+	"\x05clock\x18\x01 \x01(\x05R\x05clock\"(\n" +
 	"\x10GetClockResponse\x12\x14\n" +
 	"\x05clock\x18\x01 \x01(\x05R\x05clock\"A\n" +
 	"\fCurrentTimer\x12\x1b\n" +
@@ -222,13 +268,14 @@ const file_proto_timer_proto_rawDesc = "" +
 	"\x03dir\x18\x01 \x01(\x0e2\x16.timer.SwitchDirectionR\x03dir*#\n" +
 	"\x0fSwitchDirection\x12\x06\n" +
 	"\x02UP\x10\x00\x12\b\n" +
-	"\x04DOWN\x10\x012\xa5\x02\n" +
+	"\x04DOWN\x10\x012\xe1\x02\n" +
 	"\x05Timer\x127\n" +
 	"\x05Start\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x126\n" +
 	"\x04Stop\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x126\n" +
 	"\x06Switch\x12\x14.timer.SwitchRequest\x1a\x16.google.protobuf.Empty\x126\n" +
 	"\aCurrent\x12\x16.google.protobuf.Empty\x1a\x13.timer.CurrentTimer\x12;\n" +
-	"\bGetClock\x12\x16.google.protobuf.Empty\x1a\x17.timer.GetClockResponseB&Z$github.com/zimlewis/tomato/gen/timerb\x06proto3"
+	"\bGetClock\x12\x16.google.protobuf.Empty\x1a\x17.timer.GetClockResponse\x12:\n" +
+	"\bSetClock\x12\x16.timer.SetClockRequest\x1a\x16.google.protobuf.EmptyB&Z$github.com/zimlewis/tomato/gen/timerb\x06proto3"
 
 var (
 	file_proto_timer_proto_rawDescOnce sync.Once
@@ -243,28 +290,31 @@ func file_proto_timer_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_timer_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_timer_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_timer_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_timer_proto_goTypes = []any{
 	(SwitchDirection)(0),     // 0: timer.SwitchDirection
-	(*GetClockResponse)(nil), // 1: timer.GetClockResponse
-	(*CurrentTimer)(nil),     // 2: timer.CurrentTimer
-	(*SwitchRequest)(nil),    // 3: timer.SwitchRequest
-	(*emptypb.Empty)(nil),    // 4: google.protobuf.Empty
+	(*SetClockRequest)(nil),  // 1: timer.SetClockRequest
+	(*GetClockResponse)(nil), // 2: timer.GetClockResponse
+	(*CurrentTimer)(nil),     // 3: timer.CurrentTimer
+	(*SwitchRequest)(nil),    // 4: timer.SwitchRequest
+	(*emptypb.Empty)(nil),    // 5: google.protobuf.Empty
 }
 var file_proto_timer_proto_depIdxs = []int32{
 	0, // 0: timer.SwitchRequest.dir:type_name -> timer.SwitchDirection
-	4, // 1: timer.Timer.Start:input_type -> google.protobuf.Empty
-	4, // 2: timer.Timer.Stop:input_type -> google.protobuf.Empty
-	3, // 3: timer.Timer.Switch:input_type -> timer.SwitchRequest
-	4, // 4: timer.Timer.Current:input_type -> google.protobuf.Empty
-	4, // 5: timer.Timer.GetClock:input_type -> google.protobuf.Empty
-	4, // 6: timer.Timer.Start:output_type -> google.protobuf.Empty
-	4, // 7: timer.Timer.Stop:output_type -> google.protobuf.Empty
-	4, // 8: timer.Timer.Switch:output_type -> google.protobuf.Empty
-	2, // 9: timer.Timer.Current:output_type -> timer.CurrentTimer
-	1, // 10: timer.Timer.GetClock:output_type -> timer.GetClockResponse
-	6, // [6:11] is the sub-list for method output_type
-	1, // [1:6] is the sub-list for method input_type
+	5, // 1: timer.Timer.Start:input_type -> google.protobuf.Empty
+	5, // 2: timer.Timer.Stop:input_type -> google.protobuf.Empty
+	4, // 3: timer.Timer.Switch:input_type -> timer.SwitchRequest
+	5, // 4: timer.Timer.Current:input_type -> google.protobuf.Empty
+	5, // 5: timer.Timer.GetClock:input_type -> google.protobuf.Empty
+	1, // 6: timer.Timer.SetClock:input_type -> timer.SetClockRequest
+	5, // 7: timer.Timer.Start:output_type -> google.protobuf.Empty
+	5, // 8: timer.Timer.Stop:output_type -> google.protobuf.Empty
+	5, // 9: timer.Timer.Switch:output_type -> google.protobuf.Empty
+	3, // 10: timer.Timer.Current:output_type -> timer.CurrentTimer
+	2, // 11: timer.Timer.GetClock:output_type -> timer.GetClockResponse
+	5, // 12: timer.Timer.SetClock:output_type -> google.protobuf.Empty
+	7, // [7:13] is the sub-list for method output_type
+	1, // [1:7] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -281,7 +331,7 @@ func file_proto_timer_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_timer_proto_rawDesc), len(file_proto_timer_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
