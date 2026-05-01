@@ -5,9 +5,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
 	timer "github.com/zimlewis/tomato/gen/proto"
+	errs "github.com/zimlewis/tomato/internal/errors"
 	"github.com/zimlewis/tomato/internal/formatter"
 	"github.com/zimlewis/tomato/internal/types"
 	"google.golang.org/grpc/codes"
@@ -56,9 +57,13 @@ example output:
 		defer ticker.Stop()
 
 		for {
-			cur, err := printCurrentTimeInterval(ctx, c)
+			cur, err := getCurrentTime(ctx, c)
 			if sta, ok := status.FromError(err); ok && (sta.Code() == codes.Canceled || sta.Code() == codes.Unavailable) {
 				return
+			}
+			if errors.Is(err, errs.ErrCannotStopClock) {
+				cmd.PrintErrln(err)
+				break
 			}
 			if err != nil {
 				cmd.PrintErrln(err)
@@ -76,7 +81,7 @@ example output:
 	},
 }
 
-func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (types.CurrentResponse, error) {
+func getCurrentTime(ctx context.Context, c timer.TimerClient) (types.CurrentResponse, error) {
 	current, err := c.Current(ctx, nil)
 	if sta, ok := status.FromError(err); ok && sta.Code() == codes.NotFound {
 		var currentClock *timer.GetClockResponse
@@ -99,18 +104,13 @@ func printCurrentTimeInterval(ctx context.Context, c timer.TimerClient) (types.C
 	remaining := current.TimeLeft
 
 	if remaining <= 0 {
+		if _, err := c.Stop(ctx, nil); err != nil {
+			return types.CurrentResponse{}, errors.Join(err, errs.ErrCannotStopClock)
+		}
 
 		err = beeep.Notify("Tomato", "Your time is up", "")
 		if err != nil {
 			return types.CurrentResponse{}, fmt.Errorf("Cannot notify: %w", err)
-		}
-		err = exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga", "--volume=13076").Run()
-		if err != nil {
-			return types.CurrentResponse{}, fmt.Errorf("Cannot play sound: %w", err)
-		}
-		// Notify
-		if _, err := c.Stop(ctx, nil); err != nil {
-			return types.CurrentResponse{}, fmt.Errorf("Cannot stop the clock: %w\n", err)
 		}
 
 		remaining = int64(timeWait[current.Clock]) * 60
