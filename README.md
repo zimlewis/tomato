@@ -8,10 +8,6 @@ Tomato is an CLI to track time using [Pomodoro Technique](https://en.wikipedia.o
 
 ## Getting Started
 
-### Dependencies
-
-* Currently only work on linux with with ```paplay``` installed if you want its notifications to have sound
-
 ### Installing
 
 Build from source(having go 1.26.2+ installed):
