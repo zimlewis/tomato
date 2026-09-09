@@ -3,11 +3,11 @@ package timer
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	gen "github.com/zimlewis/tomato/gen/proto"
-	errs "github.com/zimlewis/tomato/internal/errors"
-	"github.com/zimlewis/tomato/internal/repository"
+	"github.com/zimlewis/tomato/internal/tomatoerrs"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,15 +16,23 @@ import (
 
 var waitTime = []int64{25, 5, 30}
 
-type Service struct {
-	gen.UnimplementedTimerServer
-	repo *repository.Repository
+type repository interface {
+	DeleteStartTime(ctx context.Context) error
+	GetClock(ctx context.Context) (uint16, error)
+	GetStartTime(ctx context.Context) (int64, error)
+	SetClock(ctx context.Context, clockIndex int) error
+	SetStartTime(ctx context.Context, time int64) error
 }
 
-func New(repo *repository.Repository) *Service {
-	return &Service{
-		repo: repo,
-	}
+type Service struct {
+	gen.UnimplementedTimerServer
+	repo repository
+	logger slog.Logger
+}
+
+
+func New(repo repository) *Service {
+	return &Service{ repo: repo, }
 }
 
 
@@ -73,7 +81,7 @@ func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*gen.CurrentTi
 	}
 
 	startTime, err := s.repo.GetStartTime(ctx)
-	if errors.Is(err, errs.ErrDidNotStart) {
+	if errors.Is(err, tomatoerrs.ErrDidNotStart) {
 		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
 	}
 	if err != nil {

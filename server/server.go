@@ -5,14 +5,27 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	proto "github.com/zimlewis/tomato/gen/proto"
-	"github.com/zimlewis/tomato/internal/repository"
+	"github.com/zimlewis/tomato/internal/badgerrepo"
 	"github.com/zimlewis/tomato/internal/service/timer"
 	"github.com/zimlewis/tomato/storage"
 	"google.golang.org/grpc"
 )
 
+
 func Start(ctx context.Context) error {
+	logger, c, err := initializeLogger()
+	if err != nil {
+		return fmt.Errorf("Cannot initialize logger: %v", err)
+	}
+	defer func () {
+		if err := c(); err != nil {
+			fmt.Printf("failed to flush logger: %v", err)
+		}
+	}()
+
+
 	listener, err := net.Listen("tcp", "localhost:6600")
 	defer func(){
 		if err := listener.Close(); err!= nil {
@@ -24,10 +37,13 @@ func Start(ctx context.Context) error {
 		return fmt.Errorf("Cannot start server: %w", err)
 	}
 
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			logging.UnaryServerInterceptor(interceptorLogger(logger)),
+		),
+	)
 
-	repo := repository.New(storage.Storage)
+	repo := badgerrepo.New(storage.Storage)
 	service := timer.New(&repo)
 
 	proto.RegisterTimerServer(grpcServer, service)
