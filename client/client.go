@@ -10,7 +10,6 @@ type Client struct {
 }
 
 func New() (*Client, error) {
-	var client Client;
 	conn, err := grpc.NewClient(
 		"dns:///localhost:6600", 
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -19,7 +18,8 @@ func New() (*Client, error) {
 		return nil, err
 	}
 
+	client := new(Client)
 	client.Connection = conn
 
-	return &client, nil
+	return client, nil
 }
