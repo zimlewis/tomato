@@ -3,6 +3,10 @@ package tomatoerrs
 import (
 	"errors"
 	"log/slog"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	pkgerrs "github.com/pkg/errors"
 )
 
 var (
@@ -15,6 +19,15 @@ var (
 type errWithAttrs struct {
 	error
 	attrs []slog.Attr
+}
+
+func GRPCError(logger *slog.Logger, err error, code codes.Code, message string) error {
+	logger.Error(
+		message,
+		slog.Any("error", pkgerrs.WithStack(err)),
+	)
+	return status.Error(code, message)
+
 }
 
 func WithAttrs(err error, args ...any) error {

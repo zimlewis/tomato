@@ -1,6 +1,9 @@
 package client
 
 import (
+	"fmt"
+	"os"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -10,8 +13,14 @@ type Client struct {
 }
 
 func New() (*Client, error) {
+	port := os.Getenv("TOMATO_PORT")
+	if port == "" {
+		port = "6600"
+	}
+
+	addr := fmt.Sprintf("dns:///localhost:%s", port)
 	conn, err := grpc.NewClient(
-		"dns:///localhost:6600", 
+		addr, 
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
