@@ -10,6 +10,7 @@ import (
 	"github.com/zimlewis/tomato/gen/proto/timer"
 	"github.com/zimlewis/tomato/internal/tomatoerrs"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -104,12 +105,8 @@ func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*timer.Current
 
 	startTime, err := s.repo.GetStartTime(ctx)
 	if errors.Is(err, tomatoerrs.ErrDidNotStart) {
-		return nil, tomatoerrs.GRPCError(
-			s.logger, 
-			err, 
-			codes.NotFound,
-			"the session did not start",
-		)
+		s.logger.Debug("the session did not start")
+		return nil, status.Error(codes.NotFound, "the session did not start")
 	}
 	if err != nil {
 		return nil, tomatoerrs.GRPCError(

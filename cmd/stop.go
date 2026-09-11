@@ -1,13 +1,7 @@
 package cmd
 
 import (
-	"context"
-	"os"
-	"os/signal"
-
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/client"
-	"github.com/zimlewis/tomato/gen/proto/timer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,27 +12,16 @@ var stopCmd = &cobra.Command{
 	Short: "Reset current tomato session",
 	Long: `Work by deleting saved time, if the current command cannot see the saved time, it will return maximum value for each session by default`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
-
-		conn, err := client.New()
+		c, ctx, closeFunc, err := initializeClient()
 		if err != nil {
-			cmd.PrintErrln(err)
+			cmd.PrintErrf("error initializing client: %s", err.Error())
 			return
 		}
-		defer func () {
-			err := conn.Connection.Close()
-			if err != nil {
-				cmd.PrintErrln(err)
-				return
-			}
-		}()
+		defer closeFunc()
 
-		c := timer.NewTimerClient(conn.Connection)
 		_, err = c.Stop(ctx, nil)
-		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
-			return
-		}
+		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled { return }
+
 		if err != nil {
 			cmd.PrintErrln(err)
 			return

@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"context"
-	"os"
-	"os/signal"
+	"errors"
 
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/client"
 	"github.com/zimlewis/tomato/gen/proto/timer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,38 +34,23 @@ from Pomodoro to Long Break:
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		dir := args[0]
-
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
-
-		conn, err := client.New()
+		c, ctx, closeFunc, err := initializeClient()
 		if err != nil {
-			cmd.PrintErrln(err)
+			cmd.PrintErrf("error initializing client: %s", err.Error())
 			return
 		}
-		defer func () {
-			err := conn.Connection.Close()
-			if err != nil {
-				cmd.PrintErrln(err)
-				return
-			}
-		}()
-
-		c := timer.NewTimerClient(conn.Connection)
-
+		defer closeFunc()
 		
+		dir := args[0]
 		switch dir {
 		case "up": err = switchUp(ctx, c) 
 		case "down": err = switchDown(ctx, c)
-		case "defualt": 
-			cmd.PrintErrln("The argument to this command must be up or down")
+		default: err = errors.New("The argument to this command must be up or down")
 		}
-		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled {
-			return
-		}
+		if stas, ok := status.FromError(err); ok && stas.Code() == codes.Canceled { return }
 		if err != nil {
 			cmd.PrintErrln(err)
+			return
 		}
 
 		cmd.Println("Switch session successfully")

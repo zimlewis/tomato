@@ -9,6 +9,7 @@ import (
 	"github.com/zimlewis/tomato/internal/tomatoerrs"
 )
 
+// Repository that connect to the Badger database
 type Repository struct {
 	db *badger.DB
 }
@@ -23,6 +24,7 @@ func New(db *badger.DB) Repository {
 	}
 }
 
+// Delete start time if it present
 func (repo *Repository) DeleteStartTime(ctx context.Context) error {
 	err := repo.db.Update(func(txn *badger.Txn) error {
 		return txn.Delete(startTimeKey)
@@ -34,6 +36,7 @@ func (repo *Repository) DeleteStartTime(ctx context.Context) error {
 	return nil
 }
 
+// Set start time to time passed in
 func (repo *Repository) SetStartTime(ctx context.Context, time int64) error {
 	err := repo.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(startTimeKey, binary.BigEndian.AppendUint64(nil, uint64(time)))
@@ -46,6 +49,7 @@ func (repo *Repository) SetStartTime(ctx context.Context, time int64) error {
 	return nil
 }
 
+// Update the clock by the clock index passed in
 func (repo *Repository) SetClock(ctx context.Context, clockIndex int) error {
 	err := repo.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(timerKey, binary.BigEndian.AppendUint16(nil, uint16(clockIndex)))
@@ -58,7 +62,7 @@ func (repo *Repository) SetClock(ctx context.Context, clockIndex int) error {
 	return nil
 }
 
-// Will set it to pomodoro by default if the clock haven't been set
+// Will set the clock to pomodoro by default if it hasn't been set
 func (repo *Repository) GetClock(ctx context.Context) (uint16, error) {
 	var clock uint16
 	err := repo.db.View(func(txn *badger.Txn) error {
@@ -85,6 +89,7 @@ func (repo *Repository) GetClock(ctx context.Context) (uint16, error) {
 	return clock, nil
 }
 
+// Get the start time of the current session, if the session is not yet started, return a tomatoerrs.ErrDidNotStart
 func (repo *Repository) GetStartTime(ctx context.Context) (int64, error) {
 	var startTime int64
 

@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"os"
+	"os/signal"
 
 	"github.com/spf13/cobra"
+	"github.com/zimlewis/tomato/client"
+	"github.com/zimlewis/tomato/gen/proto/timer"
 )
-
 
 var timeWait = []int{25, 5, 30}
 
@@ -26,7 +29,7 @@ and then repeat
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -40,7 +43,22 @@ func Execute() {
 	}
 }
 
-func init() {
+func initializeClient() (timer.TimerClient, context.Context, func() error, error) {
+	// Create new connection to the server
+	conn, err := client.New()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Create new context that caught os.Interrupt event so closing the client would be handled gracefully
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	c := timer.NewTimerClient(conn.Connection)
+
+	// Create close function that close the connection and cancel the context
+	closeFunc := func() error {
+		cancel()
+		return conn.Connection.Close()
+	}
+
+	return c, ctx, closeFunc, nil
 }
-
-

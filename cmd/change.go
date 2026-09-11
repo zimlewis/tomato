@@ -1,13 +1,9 @@
 package cmd
 
 import (
-	"context"
-	"os"
-	"os/signal"
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/zimlewis/tomato/client"
 	"github.com/zimlewis/tomato/gen/proto/timer"
 )
 
@@ -15,10 +11,18 @@ import (
 var changeCmd = &cobra.Command{
 	Use:   "change",
 	Short: "Change the current tomato session",
-	Long: `First argument is the session to change to(pomodoro, short, long)`,
+	Long: `First argument is the session to change to (pomodoro, short, long)`,
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		c, ctx, closeFunc, err := initializeClient()
+		if err != nil {
+			cmd.PrintErrf("error initializing client: %s", err.Error())
+			return
+		}
+		defer closeFunc()
+
+		// Get the correct clock base on the first argument of the command
 		tomatoSession := args[0]
 		var clockToSet int32
 		switch strings.ToUpper(tomatoSession) {
@@ -26,32 +30,20 @@ var changeCmd = &cobra.Command{
 		case "SHORT": clockToSet = 1
 		case "LONG": clockToSet = 2
 		default: 
+			// Print an error if the argument isn't correct
 			cmd.PrintErrf("Wrong clock: %s\nClock must be either pomodoro, short or long", tomatoSession)
 			return
 		}
 
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
-
-		conn, err := client.New()
-		if err != nil {
-			cmd.PrintErrln(err)
-			return
-		}
-		defer func () {
-			err := conn.Connection.Close()
-			if err != nil {
-				cmd.PrintErrln(err)
-				return
-			}
-		}()
-
-		c := timer.NewTimerClient(conn.Connection)
-		
 		_, err = c.SetClock(ctx, &timer.SetClockRequest{
 			Clock: clockToSet,
 		})
+		if err != nil {
+			cmd.PrintErrf("Error setting clock: %s", err.Error())
+			return
+		}
 
+		// No error, successfully change the clock
 		cmd.Println("Change session successfully")
 	},
 }

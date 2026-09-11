@@ -24,6 +24,7 @@ type stackTracer interface {
 	StackTrace() pkgerr.StackTrace
 }
 
+// Initialize a logger that is configured to log structured error
 func initializeLogger() (*slog.Logger, closeFunc, error) {
 	cf := func () error { return nil }
 	var handlers []slog.Handler

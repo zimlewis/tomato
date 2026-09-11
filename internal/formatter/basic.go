@@ -6,6 +6,8 @@ import (
 	"github.com/zimlewis/tomato/internal/types"
 )
 
+// BasicFormatter will return this form: "clock min sec"
+// eg: pomodoro 06 05
 type BasicFormatter struct {}
 
 func (BasicFormatter) Format(value types.CurrentResponse) (string, error) {

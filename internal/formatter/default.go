@@ -6,6 +6,8 @@ import (
 	"github.com/zimlewis/tomato/internal/types"
 )
 
+// DefaultFormatter will return this form: Your clock session has min:sec remaining
+// eg: Your short session has 10:20 remaining
 type DefaultFormatter struct {}
 
 func (DefaultFormatter) Format(value types.CurrentResponse) (string, error) {
