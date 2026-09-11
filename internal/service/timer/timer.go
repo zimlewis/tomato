@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"time"
 
-	gen "github.com/zimlewis/tomato/gen/proto"
+	"github.com/zimlewis/tomato/gen/proto/timer"
 	"github.com/zimlewis/tomato/internal/tomatoerrs"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -25,7 +26,7 @@ type repository interface {
 }
 
 type Service struct {
-	gen.UnimplementedTimerServer
+	timer.UnimplementedTimerServer
 	repo   repository
 	logger *slog.Logger
 }
@@ -37,7 +38,7 @@ func New(repo repository, logger *slog.Logger) *Service {
 
 
 
-func (s *Service) SetClock(ctx context.Context, req *gen.SetClockRequest) (*emptypb.Empty, error) {
+func (s *Service) SetClock(ctx context.Context, req *timer.SetClockRequest) (*emptypb.Empty, error) {
 	valueToSwitch := req.Clock
 	if valueToSwitch < 0 || valueToSwitch > 2 {
 		return nil, tomatoerrs.GRPCError(
@@ -72,7 +73,7 @@ func (s *Service) SetClock(ctx context.Context, req *gen.SetClockRequest) (*empt
 	return nil, nil
 }
 
-func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*gen.GetClockResponse, error) {
+func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*timer.GetClockResponse, error) {
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
 		return nil, tomatoerrs.GRPCError(
@@ -84,13 +85,13 @@ func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*gen.GetClock
 
 	}
 
-	return &gen.GetClockResponse{
+	return &timer.GetClockResponse{
 		Clock: int32(clock),
 	}, nil
 }
 
-func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*gen.CurrentTimer, error) {
-	var result gen.CurrentTimer
+func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*timer.CurrentTimer, error) {
+	var result timer.CurrentTimer
 	
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
@@ -104,12 +105,8 @@ func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*gen.CurrentTi
 
 	startTime, err := s.repo.GetStartTime(ctx)
 	if errors.Is(err, tomatoerrs.ErrDidNotStart) {
-		return nil, tomatoerrs.GRPCError(
-			s.logger, 
-			err, 
-			codes.NotFound,
-			"the session did not start",
-		)
+		s.logger.Debug("the session did not start")
+		return nil, status.Error(codes.NotFound, "the session did not start")
 	}
 	if err != nil {
 		return nil, tomatoerrs.GRPCError(
@@ -160,7 +157,7 @@ func (s *Service) Stop(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, e
 	return nil, nil
 }
 
-func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.Empty, error) {
+func (s *Service) Switch(ctx context.Context, dir *timer.SwitchRequest) (*emptypb.Empty, error) {
 	// Get the clock type and switch it arcodingly
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
