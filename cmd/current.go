@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/internal/formatter"
 	"github.com/zimlewis/tomato/internal/types"
@@ -41,7 +42,11 @@ example output:
 			if err != nil { break }
 			
 			if curr.TimeLeft == 0 {
-				_, err := c.Stop(ctx, nil)
+				err := beeep.Notify("Tomato", "Your time is up", "")
+				if err != nil {
+					cmd.PrintErrf("error notifying: %v\n", err)
+				}
+				_, err = c.Stop(ctx, nil)
 				if err != nil {
 					cmd.PrintErrln(err)
 					break
