@@ -5,6 +5,8 @@ go 1.27.0
 require (
 	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/gen2brain/beeep v0.11.2
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
+	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11

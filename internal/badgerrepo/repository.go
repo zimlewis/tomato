@@ -1,4 +1,4 @@
-package repository
+package badgerrepo
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/dgraph-io/badger/v4"
-	errs "github.com/zimlewis/tomato/internal/errors"
+	"github.com/zimlewis/tomato/internal/tomatoerrs"
 )
 
 type Repository struct {
@@ -28,7 +28,7 @@ func (repo *Repository) DeleteStartTime(ctx context.Context) error {
 		return txn.Delete(startTimeKey)
 	})
 	if err != nil {
-		return errors.Join(errs.ErrBadgerDB, err)
+		return errors.Join(tomatoerrs.ErrBadgerDB, err)
 	}
 
 	return nil
@@ -40,7 +40,7 @@ func (repo *Repository) SetStartTime(ctx context.Context, time int64) error {
 		return err
 	})
 	if err != nil {
-		return errors.Join(errs.ErrBadgerDB, err)
+		return errors.Join(tomatoerrs.ErrBadgerDB, err)
 	}
 
 	return nil
@@ -52,7 +52,7 @@ func (repo *Repository) SetClock(ctx context.Context, clockIndex int) error {
 		return err
 	})
 	if err != nil {
-		return errors.Join(errs.ErrBadgerDB, err)
+		return errors.Join(tomatoerrs.ErrBadgerDB, err)
 	}
 
 	return nil
@@ -79,7 +79,7 @@ func (repo *Repository) GetClock(ctx context.Context) (uint16, error) {
 		return nil
 	})
 	if err != nil {
-		return 0, errors.Join(errs.ErrBadgerDB, err)
+		return 0, errors.Join(tomatoerrs.ErrBadgerDB, err)
 	}
 
 	return clock, nil
@@ -105,10 +105,10 @@ func (repo *Repository) GetStartTime(ctx context.Context) (int64, error) {
 	})
 	
 	if err == badger.ErrKeyNotFound {
-		return 0, errs.ErrDidNotStart
+		return 0, tomatoerrs.ErrDidNotStart
 	}
 	if err != nil {
-		return 0, errors.Join(errs.ErrBadgerDB, err)
+		return 0, errors.Join(tomatoerrs.ErrBadgerDB, err)
 	}
 
 

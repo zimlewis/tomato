@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
 	timer "github.com/zimlewis/tomato/gen/proto"
-	errs "github.com/zimlewis/tomato/internal/errors"
+	errs "github.com/zimlewis/tomato/internal/tomatoerrs"
 	"github.com/zimlewis/tomato/internal/formatter"
 	"github.com/zimlewis/tomato/internal/types"
 	"google.golang.org/grpc/codes"

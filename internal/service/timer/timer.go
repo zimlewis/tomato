@@ -3,28 +3,36 @@ package timer
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 	"time"
 
 	gen "github.com/zimlewis/tomato/gen/proto"
-	errs "github.com/zimlewis/tomato/internal/errors"
-	"github.com/zimlewis/tomato/internal/repository"
+	"github.com/zimlewis/tomato/internal/tomatoerrs"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 
 var waitTime = []int64{25, 5, 30}
 
-type Service struct {
-	gen.UnimplementedTimerServer
-	repo *repository.Repository
+type repository interface {
+	DeleteStartTime(ctx context.Context) error
+	GetClock(ctx context.Context) (uint16, error)
+	GetStartTime(ctx context.Context) (int64, error)
+	SetClock(ctx context.Context, clockIndex int) error
+	SetStartTime(ctx context.Context, time int64) error
 }
 
-func New(repo *repository.Repository) *Service {
-	return &Service{
-		repo: repo,
-	}
+type Service struct {
+	gen.UnimplementedTimerServer
+	repo   repository
+	logger *slog.Logger
+}
+
+
+func New(repo repository, logger *slog.Logger) *Service {
+	return &Service{ repo: repo, logger: logger }
 }
 
 
@@ -32,31 +40,48 @@ func New(repo *repository.Repository) *Service {
 func (s *Service) SetClock(ctx context.Context, req *gen.SetClockRequest) (*emptypb.Empty, error) {
 	valueToSwitch := req.Clock
 	if valueToSwitch < 0 || valueToSwitch > 2 {
-		return nil, status.Errorf(codes.InvalidArgument, "Invalid clock value(value must be in range from 0 to 2): %d", valueToSwitch)
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			fmt.Errorf("Invalid clock value(value must be in range from 0 to 2): %d", valueToSwitch),
+			codes.InvalidArgument,
+			"invalid clock value",
+		)
 	}
 
 	// Set the clock type 
 	err := s.repo.SetClock(ctx, int(valueToSwitch))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			err,
+			codes.Internal,
+			"unable to set clock type",
+		)
 	}
 
 	// Delete the start time
 	err = s.repo.DeleteStartTime(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			err, 
+			codes.Internal, 
+			"unable to reset start time",
+		)
 	}
 	return nil, nil
 }
 
-
-
-
-
 func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*gen.GetClockResponse, error) {
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot get code: %s", err)
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot get the code",
+		)
+
 	}
 
 	return &gen.GetClockResponse{
@@ -69,15 +94,30 @@ func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*gen.CurrentTi
 	
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot get current clock",
+		)
 	}
 
 	startTime, err := s.repo.GetStartTime(ctx)
-	if errors.Is(err, errs.ErrDidNotStart) {
-		return nil, status.Errorf(codes.NotFound, "%s", err.Error())
+	if errors.Is(err, tomatoerrs.ErrDidNotStart) {
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			err, 
+			codes.NotFound,
+			"the session did not start",
+		)
 	}
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "%s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot get start the session",
+		)
 	}
 
 	currentTime := time.Now().Unix()
@@ -96,7 +136,12 @@ func (s *Service) Start(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, 
 	currentTime := time.Now().Unix()
 	err := s.repo.SetStartTime(ctx, currentTime)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot start session %s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot start session",
+		)
 	}
 	return nil, nil
 }
@@ -105,7 +150,12 @@ func (s *Service) Stop(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, e
 	// Delete the start time
 	err := s.repo.DeleteStartTime(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot stop session: %s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot stop the clock",
+		)
 	}
 	return nil, nil
 }
@@ -114,7 +164,12 @@ func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.
 	// Get the clock type and switch it arcodingly
 	clock, err := s.repo.GetClock(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot get clock: %s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			err, 
+			codes.Internal, 
+			"cannot get the clock",
+		)
 	}
 
 	var valueToSwitch int
@@ -130,19 +185,34 @@ func (s *Service) Switch(ctx context.Context, dir *gen.SwitchRequest) (*emptypb.
 			valueToSwitch = 2
 		}
 	default:
-		return nil, status.Errorf(codes.InvalidArgument, "Wrong direction format: %s\n", dir.String())
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			fmt.Errorf("wrong direction format: %s", dir.String()), 
+			codes.InvalidArgument, 
+			"wrong direction format",
+		)
 	}
 
 	// Set the clock type 
 	err = s.repo.SetClock(ctx, int(valueToSwitch))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot set clock: %s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger, 
+			err, 
+			codes.Internal, 
+			"cannot set clock",
+		)
 	}
 
 	// Delete the start time
 	err = s.repo.DeleteStartTime(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Cannot delete start time: %s", err.Error())
+		return nil, tomatoerrs.GRPCError(
+			s.logger,
+			err,
+			codes.Internal,
+			"cannot delete start time",
+		)
 	}
 	return nil, nil
 }
