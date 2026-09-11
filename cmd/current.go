@@ -1,6 +1,3 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -14,7 +11,7 @@ import (
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
-	timer "github.com/zimlewis/tomato/gen/proto"
+	"github.com/zimlewis/tomato/gen/proto/timer"
 	errs "github.com/zimlewis/tomato/internal/tomatoerrs"
 	"github.com/zimlewis/tomato/internal/formatter"
 	"github.com/zimlewis/tomato/internal/types"

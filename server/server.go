@@ -9,7 +9,7 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	pkgerrs "github.com/pkg/errors"
-	proto "github.com/zimlewis/tomato/gen/proto"
+	prototimer "github.com/zimlewis/tomato/gen/proto/timer"
 	"github.com/zimlewis/tomato/internal/badgerrepo"
 	"github.com/zimlewis/tomato/internal/service/timer"
 	"github.com/zimlewis/tomato/storage"
@@ -53,7 +53,7 @@ func Start(ctx context.Context) error {
 	repo := badgerrepo.New(storage.Storage)
 	service := timer.New(&repo, logger)
 
-	proto.RegisterTimerServer(grpcServer, service)
+	prototimer.RegisterTimerServer(grpcServer, service)
 
 	errChan := make(chan error, 1)
 

@@ -1,7 +1,3 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
@@ -11,9 +7,6 @@ import (
 )
 
 
-var clock = []string{"pomodoro", "short", "long"}
-var timerKey = []byte("timer")
-var startTimeKey = []byte("start")
 var timeWait = []int{25, 5, 30}
 
 // rootCmd represents the base command when called without any subcommands

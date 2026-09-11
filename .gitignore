@@ -1,3 +1,5 @@
 .envrc
+gen/
 # Added by goreleaser init:
 dist/
+

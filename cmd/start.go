@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
-	timer "github.com/zimlewis/tomato/gen/proto"
+	"github.com/zimlewis/tomato/gen/proto/timer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
