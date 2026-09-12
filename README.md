@@ -88,6 +88,23 @@ git clone https://github.com/zimlewis/tomato
 cd tomato
 ```
 
+### Generate protobuf code
+Install [buf cli](https://buf.build/docs/cli/installation/):
+```bash
+sudo pacman -Sy buf # On arch
+```
+
+install protoc plugin using go
+```bash
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+```
+
+### Generate golang protobuf
+```bash
+buf generate
+```
+
 ### Build the compiled binary
 ```bash
 go build

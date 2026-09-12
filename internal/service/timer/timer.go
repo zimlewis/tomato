@@ -90,21 +90,24 @@ func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*timer.GetClo
 	}, nil
 }
 
-// Current(*emptypb.Empty, grpc.ServerStreamingServer[CurrentTimer]) error
+
+// Send current timer to client each second until the ctx is done (client close)
 func (s *Service) Current(_ *emptypb.Empty, stream grpc.ServerStreamingServer[timer.CurrentTimer]) error {
-	ctx := stream.Context()
+	ctx := stream.Context() // Get context of the stream
+
+	// Create new ticker that tick every second
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	loop:
 	for {
-
 		select {
 		case <-ctx.Done(): break loop
 		case <-ticker.C:
 		}
 		result := new(timer.CurrentTimer)
 		
+		// If clock will not get an error if the clock did not set because it will set the clock is not found
 		clock, err := s.repo.GetClock(ctx)
 		if err != nil {
 			return tomatoerrs.GRPCError(
@@ -115,6 +118,7 @@ func (s *Service) Current(_ *emptypb.Empty, stream grpc.ServerStreamingServer[ti
 			)
 		}
 
+		// If getting start time return a ErrDidNotStart, send a default time to the client. Return an error if sending did not succeed
 		startTime, err := s.repo.GetStartTime(ctx)
 		if errors.Is(err, tomatoerrs.ErrDidNotStart) {
 			result.Clock = int32(clock)
@@ -139,9 +143,9 @@ func (s *Service) Current(_ *emptypb.Empty, stream grpc.ServerStreamingServer[ti
 			)
 		}
 		
+		// Get timeLeft by using predefined time for each session minus the duration between current time and start time
 		currentTime := time.Now().Unix()
 		elapsed := currentTime - startTime
-
 		timeLeft := waitTime[clock] * 60 - elapsed 
 
 		result.Clock = int32(clock)
@@ -153,13 +157,13 @@ func (s *Service) Current(_ *emptypb.Empty, stream grpc.ServerStreamingServer[ti
 				s.logger,
 				err,
 				codes.Internal,
-				"cannot get start the session",
+				"cannot send stream to user",
 			)
 		}
 
 	}
 
-	s.logger.Debug("stream terminated")
+	s.logger.Debug("stream close successfully")
 
 
 	return nil

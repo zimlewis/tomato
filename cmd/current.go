@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/gen2brain/beeep"
@@ -34,18 +33,26 @@ example output:
 
 		stream, err := c.Current(ctx, nil)
 		for {
+			// Receive data from the stream
 			curr, err := stream.Recv();
+			// If server closed, close the session
 			if errors.Is(err, io.EOF) { 
 				cmd.Println("stream terminated")
 				return 
 			}
-			if err != nil { break }
+			if err != nil {
+				cmd.PrintErrf("error retrieving from server: %v\n", err)
+				break 
+			}
 			
+			// If time left is 0, notify and then stop the clock and continue with next loop
 			if curr.TimeLeft == 0 {
 				err := beeep.Notify("Tomato", "Your time is up", "")
+				// If notifying failed, print the error and ignore it since it's optional anyway
 				if err != nil {
 					cmd.PrintErrf("error notifying: %v\n", err)
 				}
+				// If stopping failed, break the loop because it will spam notification otherwise
 				_, err = c.Stop(ctx, nil)
 				if err != nil {
 					cmd.PrintErrln(err)
@@ -54,13 +61,13 @@ example output:
 				continue
 			}
 
-
+			// Format the current response and print it
 			current := &types.CurrentResponse{
 				TimeLeft: int64(curr.TimeLeft),
 				Clock: int16(curr.Clock),
 			}
 			s, err := f.Format(*current)
-			fmt.Println(s)
+			cmd.Println(s)
 		}
 	},
 }
