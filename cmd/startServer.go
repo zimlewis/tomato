@@ -1,6 +1,3 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -30,6 +27,8 @@ by gRPC protocal`,
 			cmd.PrintErrln(err)
 			return
 		}
+
+		cmd.Println("closing server")
 	},
 }
 

@@ -3,43 +3,72 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
+	"os"
 
-	proto "github.com/zimlewis/tomato/gen/proto"
-	"github.com/zimlewis/tomato/internal/repository"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	pkgerrs "github.com/pkg/errors"
+	prototimer "github.com/zimlewis/tomato/gen/proto/timer"
+	"github.com/zimlewis/tomato/internal/badgerrepo"
 	"github.com/zimlewis/tomato/internal/service/timer"
 	"github.com/zimlewis/tomato/storage"
 	"google.golang.org/grpc"
 )
 
 func Start(ctx context.Context) error {
-	listener, err := net.Listen("tcp", "localhost:6600")
-	defer func(){
-		if err := listener.Close(); err!= nil {
+	logger, c, err := initializeLogger()
+	if err != nil {
+		return fmt.Errorf("Cannot initialize logger: %v", err)
+	}
+	defer func() {
+		if err := c(); err != nil {
+			fmt.Printf("failed to flush logger: %v", err)
+		}
+	}()
+
+	// Get the port, default to 6600
+	port := os.Getenv("TOMATO_PORT")
+	if port == "" {
+		port = "6600"
+	}
+	addr := fmt.Sprintf("0.0.0.0:%s", port)
+
+	// Open a tcp listener to listen the grpc server on
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("Cannot start server: %w", pkgerrs.WithStack(err))
+	}
+	defer func() {
+		if err := listener.Close(); err != nil {
 			fmt.Println("error closing server: ", err)
 			return
 		}
 	}()
-	if err != nil {
-		return fmt.Errorf("Cannot start server: %w", err)
-	}
 
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
+	// Initialize a server that have a logger
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			logging.UnaryServerInterceptor(interceptorLogger(logger)),
+		),
+	)
 
-	repo := repository.New(storage.Storage)
-	service := timer.New(&repo)
+	// Create new repo and asign it to the service along with the logger
+	repo := badgerrepo.New(storage.Storage)
+	service := timer.New(&repo, logger)
 
-	proto.RegisterTimerServer(grpcServer, service)
+	// Register the timer service to the server
+	prototimer.RegisterTimerServer(grpcServer, service)
 
+	// Create an error channel to listen to grpc in a goroutine
 	errChan := make(chan error, 1)
-
 	go func() {
 		errChan <- grpcServer.Serve(listener)
 	}()
+	logger.Debug("serving", slog.String("port", port))
 
 	select {
-		case err := <- errChan: return err
-		case <- ctx.Done(): return nil
+	case err := <-errChan: return err
+	case <-ctx.Done(): return nil
 	}
 }

@@ -2,10 +2,12 @@ package formatter
 
 import "github.com/zimlewis/tomato/internal/types"
 
+// A formatter that is used by the output the format the response to different kind of string
 type Formatter interface {
 	Format(data types.CurrentResponse) (string, error)
 }
 
+// Take a string and return a formatter that matched the string, return DefaultFormatter by default
 func NewFromString(s string) Formatter {
 	switch s {
 	case "waybar": return WaybarFormatter{}
