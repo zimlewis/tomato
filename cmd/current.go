@@ -32,6 +32,9 @@ example output:
 		f := formatter.NewFromString(formatterFlag)
 
 		stream, err := c.Current(ctx, nil)
+		if err != nil {
+			cmd.PrintErrf("cannot get the stream from server: %v", err)
+		}
 		for {
 			// Receive data from the stream
 			curr, err := stream.Recv();

@@ -51,6 +51,9 @@ func Start(ctx context.Context) error {
 		grpc.ChainUnaryInterceptor(
 			logging.UnaryServerInterceptor(interceptorLogger(logger)),
 		),
+		grpc.ChainStreamInterceptor(
+			logging.StreamServerInterceptor(interceptorLogger(logger)),
+		),
 	)
 
 	// Create new repo and asign it to the service along with the logger
