@@ -9,8 +9,8 @@ import (
 
 	"github.com/zimlewis/tomato/gen/proto/timer"
 	"github.com/zimlewis/tomato/internal/tomatoerrs"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -90,42 +90,83 @@ func (s *Service) GetClock(ctx context.Context, _ *emptypb.Empty) (*timer.GetClo
 	}, nil
 }
 
-func (s *Service) Current(ctx context.Context, _ *emptypb.Empty) (*timer.CurrentTimer, error) {
-	var result timer.CurrentTimer
-	
-	clock, err := s.repo.GetClock(ctx)
-	if err != nil {
-		return nil, tomatoerrs.GRPCError(
-			s.logger,
-			err,
-			codes.Internal,
-			"cannot get current clock",
-		)
+
+// Send current timer to client each second until the ctx is done (client close)
+func (s *Service) Current(_ *emptypb.Empty, stream grpc.ServerStreamingServer[timer.CurrentTimer]) error {
+	ctx := stream.Context() // Get context of the stream
+
+	// Create new ticker that tick every second
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	loop:
+	for {
+		select {
+		case <-ctx.Done(): break loop
+		case <-ticker.C:
+		}
+		result := new(timer.CurrentTimer)
+		
+		// If clock will not get an error if the clock did not set because it will set the clock is not found
+		clock, err := s.repo.GetClock(ctx)
+		if err != nil {
+			return tomatoerrs.GRPCError(
+				s.logger,
+				err,
+				codes.Internal,
+				"cannot get current clock",
+			)
+		}
+
+		// If getting start time return a ErrDidNotStart, send a default time to the client. Return an error if sending did not succeed
+		startTime, err := s.repo.GetStartTime(ctx)
+		if errors.Is(err, tomatoerrs.ErrDidNotStart) {
+			result.Clock = int32(clock)
+			result.TimeLeft = int64(waitTime[clock] * 60)
+			err := stream.Send(result);
+			if err != nil {
+				return tomatoerrs.GRPCError(
+					s.logger,
+					err,
+					codes.Internal,
+					"cannot send to stream",
+				)
+			}
+			continue
+		}
+		if err != nil {
+			return tomatoerrs.GRPCError(
+				s.logger,
+				err,
+				codes.Internal,
+				"cannot get start the session",
+			)
+		}
+		
+		// Get timeLeft by using predefined time for each session minus the duration between current time and start time
+		currentTime := time.Now().Unix()
+		elapsed := currentTime - startTime
+		timeLeft := waitTime[clock] * 60 - elapsed 
+
+		result.Clock = int32(clock)
+		result.TimeLeft = timeLeft
+
+		err = stream.Send(result)
+		if err != nil {
+			return tomatoerrs.GRPCError(
+				s.logger,
+				err,
+				codes.Internal,
+				"cannot send stream to user",
+			)
+		}
+
 	}
 
-	startTime, err := s.repo.GetStartTime(ctx)
-	if errors.Is(err, tomatoerrs.ErrDidNotStart) {
-		s.logger.Debug("the session did not start")
-		return nil, status.Error(codes.NotFound, "the session did not start")
-	}
-	if err != nil {
-		return nil, tomatoerrs.GRPCError(
-			s.logger,
-			err,
-			codes.Internal,
-			"cannot get start the session",
-		)
-	}
+	s.logger.Debug("stream close successfully")
 
-	currentTime := time.Now().Unix()
-	elapsed := currentTime - startTime
 
-	timeLeft := waitTime[clock] * 60 - elapsed 
-
-	result.Clock = int32(clock)
-	result.TimeLeft = timeLeft
-
-	return &result, nil
+	return nil
 }
 
 func (s *Service) Start(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {

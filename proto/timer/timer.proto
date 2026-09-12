@@ -9,7 +9,7 @@ service Timer {
   rpc Start(google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty);
   rpc Switch(SwitchRequest) returns (google.protobuf.Empty);
-  rpc Current(google.protobuf.Empty) returns (CurrentTimer);
+  rpc Current(google.protobuf.Empty) returns (stream CurrentTimer);
   rpc GetClock(google.protobuf.Empty) returns (GetClockResponse); 
   rpc SetClock(SetClockRequest) returns (google.protobuf.Empty);
 }
