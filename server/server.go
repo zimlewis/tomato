@@ -5,39 +5,61 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"os"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	pkgerrs "github.com/pkg/errors"
 	prototimer "github.com/zimlewis/tomato/gen/proto/timer"
-	"github.com/zimlewis/tomato/internal/badgerrepo"
-	"github.com/zimlewis/tomato/internal/service/timer"
-	"github.com/zimlewis/tomato/storage"
 	"google.golang.org/grpc"
 )
 
-func Start(ctx context.Context) error {
-	logger, c, err := initializeLogger()
-	if err != nil {
-		return fmt.Errorf("Cannot initialize logger: %v", err)
-	}
-	defer func() {
-		if err := c(); err != nil {
-			fmt.Printf("failed to flush logger: %v", err)
-		}
-	}()
+type Server struct {
+	port    string
+	host    string
+	logger  *slog.Logger
+	service prototimer.TimerServer
+}
 
-	// Get the port, default to 6600
-	port := os.Getenv("TOMATO_PORT")
-	if port == "" {
-		port = "6600"
-	}
-	addr := fmt.Sprintf("0.0.0.0:%s", port)
+type option func (*Server)
 
-	// Open a tcp listener to listen the grpc server on
+func WithPort(port string) option {
+	return func(s *Server) {
+		s.port = port
+	}
+}
+
+func WithHost(host string) option {
+	return func(s *Server) {
+		s.host = host
+	}
+}
+
+func WithLogger(logger *slog.Logger) option {
+	return func(s *Server) {
+		s.logger = logger
+	}
+}
+
+func WithService(service prototimer.TimerServer) option {
+	return func(s *Server) {
+		s.service = service
+	}
+}
+
+func New(opts ...option) Server {
+	server := Server{}
+
+	for _, opt := range opts {
+		opt(&server)
+	}
+
+	return server
+}
+
+func (server Server) Start(ctx context.Context) error {
+	addr := fmt.Sprintf("%s:%s", server.host, server.port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("Cannot start server: %w", pkgerrs.WithStack(err))
+		return fmt.Errorf("cannot start server: %w", pkgerrs.WithStack(err))
 	}
 	defer func() {
 		if err := listener.Close(); err != nil {
@@ -46,29 +68,27 @@ func Start(ctx context.Context) error {
 		}
 	}()
 
-	// Initialize a server that have a logger
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			logging.UnaryServerInterceptor(interceptorLogger(logger)),
+			logging.UnaryServerInterceptor(interceptorLogger(server.logger)),
+		),
+		grpc.ChainStreamInterceptor(
+			logging.StreamServerInterceptor(interceptorLogger(server.logger)),
 		),
 	)
 
-	// Create new repo and asign it to the service along with the logger
-	repo := badgerrepo.New(storage.Storage)
-	service := timer.New(&repo, logger)
-
-	// Register the timer service to the server
-	prototimer.RegisterTimerServer(grpcServer, service)
-
+	prototimer.RegisterTimerServer(grpcServer, server.service)
+	
 	// Create an error channel to listen to grpc in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- grpcServer.Serve(listener)
 	}()
-	logger.Debug("serving", slog.String("port", port))
+	server.logger.Debug("serving", slog.String("port", server.port))
 
 	select {
 	case err := <-errChan: return err
 	case <-ctx.Done(): return nil
 	}
 }
+
