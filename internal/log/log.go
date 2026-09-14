@@ -1,7 +1,6 @@
 package log
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	pkgerr "github.com/pkg/errors"
 	"github.com/zimlewis/tomato/internal/tomatoerrs"
 )
@@ -109,10 +107,4 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 	skip:
 
 	return a
-}
-
-func interceptorLogger(l *slog.Logger) logging.Logger {
-	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
-		l.Log(ctx, slog.Level(lvl), msg, fields...)
-	})
 }
