@@ -34,12 +34,21 @@ from Pomodoro to Long Break:
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		c, ctx, closeFunc, err := initializeClient()
+		client, ctx, closeFunc := initializeClient()
+		defer closeFunc()
+
+		connection, err := client.GetConnection()
 		if err != nil {
-			cmd.PrintErrf("error initializing client: %s", err.Error())
+			cmd.PrintErrf("cannot get client connection: %s", err.Error())
 			return
 		}
-		defer closeFunc()
+		defer func() {
+			if err := connection.Close(); err != nil {
+				cmd.PrintErrf("error during connection closing: %s", err.Error())
+			}
+		}()
+
+		c := timer.NewTimerClient(connection)
 		
 		dir := args[0]
 		switch dir {
