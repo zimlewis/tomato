@@ -2,35 +2,60 @@ package client
 
 import (
 	"fmt"
-	"os"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // A gRPC client that hold the connection to the gRPC server
 type Client struct {
-	Connection *grpc.ClientConn
+	port        string
+	host        string
+	dialOptions []grpc.DialOption
 }
+type option func(*Client)
 
-// New gRPC client that connect to the configured port of tomato
-func New() (*Client, error) {
-	port := os.Getenv("TOMATO_PORT")
-	if port == "" {
-		port = "6600"
-	}
-
-	addr := fmt.Sprintf("dns:///localhost:%s", port)
+func (client Client) GetConnection() (*grpc.ClientConn, error) {
+	addr := fmt.Sprintf("%s:%s", client.host, client.port)
 	conn, err := grpc.NewClient(
-		addr, 
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		addr,
+		client.dialOptions...,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	client := new(Client)
-	client.Connection = conn
+	return conn, nil
+}
 
-	return client, nil
+func WithHost(host string) option {
+	return func(c *Client) {
+		c.host = host
+	}
+}
+
+func WithPort(port string) option {
+	return func(c *Client) {
+		c.port = port
+	}
+}
+
+func WithDialOptions(options ...grpc.DialOption) option {
+	return func(c *Client) {
+		c.dialOptions = append(c.dialOptions, options...)
+	}
+}
+
+// New gRPC client that connect to the configured port of tomato
+func New(opts ...option) *Client {
+	client := new(Client{
+		port:        "6600",
+		host:        "dns:///localhost",
+		dialOptions: []grpc.DialOption{},
+	})
+
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
 }

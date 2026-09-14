@@ -15,12 +15,23 @@ var changeCmd = &cobra.Command{
 
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		c, ctx, closeFunc, err := initializeClient()
+		client, ctx, cancel := initializeClient()
+		defer cancel()
+
+		connection, err := client.GetConnection()
 		if err != nil {
-			cmd.PrintErrf("error initializing client: %s", err.Error())
+			cmd.PrintErrf("cannot get client connection: %s", err.Error())
 			return
 		}
-		defer closeFunc()
+		defer func() {
+			if err := connection.Close(); err != nil {
+				cmd.PrintErrf("error during connection closing: %s", err.Error())
+			}
+		}()
+
+
+		c := timer.NewTimerClient(connection)
+
 
 		// Get the correct clock base on the first argument of the command
 		tomatoSession := args[0]

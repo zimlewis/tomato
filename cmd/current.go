@@ -6,6 +6,7 @@ import (
 
 	"github.com/gen2brain/beeep"
 	"github.com/spf13/cobra"
+	"github.com/zimlewis/tomato/gen/proto/timer"
 	"github.com/zimlewis/tomato/internal/formatter"
 	"github.com/zimlewis/tomato/internal/types"
 )
@@ -20,12 +21,21 @@ example output:
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		c, ctx, closeFunc, err := initializeClient()
+		client, ctx, cancel := initializeClient()
+		defer cancel()
+
+		connection, err := client.GetConnection()
 		if err != nil {
-			cmd.PrintErrf("error initializing client: %s", err.Error())
+			cmd.PrintErrf("cannot get client connection: %s", err.Error())
 			return
 		}
-		defer closeFunc()
+		defer func() {
+			if err := connection.Close(); err != nil {
+				cmd.PrintErrf("error during connection closing: %s", err.Error())
+			}
+		}()
+
+		c := timer.NewTimerClient(connection)
 
 		// Get formatter using the "formatter" flag
 		formatterFlag := cmd.Flag("formatter").Value.String()
@@ -34,6 +44,7 @@ example output:
 		stream, err := c.Current(ctx, nil)
 		if err != nil {
 			cmd.PrintErrf("cannot get the stream from server: %v", err)
+			return
 		}
 		for {
 			// Receive data from the stream

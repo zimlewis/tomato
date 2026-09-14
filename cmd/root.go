@@ -7,7 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/zimlewis/tomato/client"
-	"github.com/zimlewis/tomato/gen/proto/timer"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -41,22 +42,27 @@ func Execute() {
 	}
 }
 
-func initializeClient() (timer.TimerClient, context.Context, func() error, error) {
-	// Create new connection to the server
-	conn, err := client.New()
-	if err != nil {
-		return nil, nil, nil, err
+func initializeClient() (*client.Client, context.Context, func()) {
+	port := os.Getenv("TOMATO_PORT")
+	if port == "" {
+		port = "6600"
+	}
+	host := "dns:///localhost"
+	dialOptions := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	// Create new context that caught os.Interrupt event so closing the client would be handled gracefully
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	c := timer.NewTimerClient(conn.Connection)
+	timerClient := client.New(
+		client.WithDialOptions(dialOptions...),
+		client.WithHost(host),
+		client.WithPort(port),
+	)
 
-	// Create close function that close the connection and cancel the context
-	closeFunc := func() error {
-		cancel()
-		return conn.Connection.Close()
-	}
+	ctx, cancel := signal.NotifyContext(
+		context.Background(), 
+		os.Interrupt,
+	)
 
-	return c, ctx, closeFunc, nil
+
+	return timerClient, ctx, cancel
 }
