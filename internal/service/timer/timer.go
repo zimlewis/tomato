@@ -31,9 +31,33 @@ type Service struct {
 	logger *slog.Logger
 }
 
+type option func (*Service)
 
-func New(repo repository, logger *slog.Logger) *Service {
-	return &Service{ repo: repo, logger: logger }
+func WithRepository(repo repository) option {
+	return func(s *Service) {
+		s.repo = repo
+	}
+}
+
+func WithLogger(logger *slog.Logger) option {
+	return func(s *Service) {
+		s.logger = logger
+	}
+}
+
+
+func New(opts ...option) *Service {
+	service := Service {
+		repo: nil,
+		logger: nil,
+	}
+
+	for _, opt := range opts {
+		opt(&service)
+	}
+
+
+	return &service
 }
 
 

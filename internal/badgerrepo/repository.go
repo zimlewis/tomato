@@ -18,10 +18,24 @@ type Repository struct {
 var timerKey = []byte("timer")
 var startTimeKey = []byte("start")
 
-func New(db *badger.DB) Repository {
-	return Repository{ 
-		db: db,
+type option func (*Repository)
+
+func WithDatabase(db *badger.DB) option {
+	return func(r *Repository) {
+		r.db = db
 	}
+}
+
+func New(opts ...option) Repository {
+	repo := Repository{
+		db: nil,
+	}
+
+	for _, opt := range opts {
+		opt(&repo)
+	}
+
+	return repo
 }
 
 // Delete start time if it present
